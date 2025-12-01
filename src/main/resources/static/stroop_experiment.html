@@ -234,6 +234,9 @@
     <div class="container">
         <!-- 1. 참가자 ID 입력 -->
         <div id="section-survey" class="section active">
+            <div style="text-align: right; margin-bottom: 20px;">
+                <a href="/" style="color: #777; text-decoration: none; font-size: 14px;">← 홈으로</a>
+            </div>
             <h1>숏폼 스트룹 실험</h1>
             <h2>참가자 정보</h2>
 
@@ -384,82 +387,23 @@
             <div class="stroop-display" id="delayed-display"></div>
         </div>
 
-        <!-- 9. 결과 -->
-        <div id="section-results" class="section">
-            <h2>실험 완료</h2>
-            <div class="instructions">
-                실험이 완료되었습니다. 아래에서 모든 시행의 반응시간을 확인할 수 있습니다.
+        <!-- 9. 결과 (저장 중) -->
+        <div id="section-saving" class="section">
+            <div class="stroop-display">
+                <div class="complete-message">데이터 저장 중...</div>
+                <div class="progress" id="save-status">서버에 저장하고 있습니다.</div>
             </div>
+        </div>
 
-            <div class="results-section">
-                <h3>기저선 측정 결과</h3>
-                <table class="data-table" id="baseline-results-table">
-                    <thead>
-                        <tr>
-                            <th>시행</th>
-                            <th>단어</th>
-                            <th>단어유형</th>
-                            <th>색상</th>
-                            <th>정답여부</th>
-                            <th>RT (ms)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="baseline-results-body"></tbody>
-                </table>
-            </div>
-
-            <div class="results-section">
-                <h3>0분 측정 결과 (영상 직후)</h3>
-                <table class="data-table" id="immediate-results-table">
-                    <thead>
-                        <tr>
-                            <th>시행</th>
-                            <th>단어</th>
-                            <th>단어유형</th>
-                            <th>색상</th>
-                            <th>정답여부</th>
-                            <th>RT (ms)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="immediate-results-body"></tbody>
-                </table>
-            </div>
-
-            <div class="results-section">
-                <h3>3분 측정 결과 (연산 과제 후)</h3>
-                <table class="data-table" id="delayed-results-table">
-                    <thead>
-                        <tr>
-                            <th>시행</th>
-                            <th>단어</th>
-                            <th>단어유형</th>
-                            <th>색상</th>
-                            <th>정답여부</th>
-                            <th>RT (ms)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="delayed-results-body"></tbody>
-                </table>
-            </div>
-
-            <div class="results-section">
-                <h3>전체 요약</h3>
-                <table class="data-table" id="summary-table">
-                    <thead>
-                        <tr>
-                            <th>시점</th>
-                            <th>음식 평균 RT (ms)</th>
-                            <th>중립 평균 RT (ms)</th>
-                            <th>전체 평균 RT (ms)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="summary-body"></tbody>
-                </table>
-            </div>
-
-            <div class="button-group">
-                <button onclick="downloadData()">전체 데이터 다운로드 (CSV)</button>
-                <button onclick="downloadSummary()">요약 데이터 다운로드 (CSV)</button>
+        <!-- 10. 완료 -->
+        <div id="section-complete" class="section">
+            <div class="stroop-display">
+                <div class="complete-message" style="color: #4CAF50;">실험이 완료되었습니다!</div>
+                <div class="instructions" style="text-align: center; margin-top: 30px;">
+                    <strong id="complete-participant-id"></strong> 참가자의 데이터가 저장되었습니다.<br><br>
+                    잠시 후 다음 참가자를 위해 초기화됩니다.
+                </div>
+                <div class="timer" id="reset-timer">5</div>
             </div>
         </div>
     </div>
@@ -694,8 +638,7 @@
                 } else if (phase === 'immediate') {
                     showSection('section-immediate-complete');
                 } else if (phase === 'delayed') {
-                    showSection('section-results');
-                    displayResults();
+                    saveAndReset();
                 }
                 return;
             }
@@ -880,159 +823,74 @@
             setTimeout(() => runStroopTrial('delayed'), 500);
         }
 
-        // 결과 표시
-        function displayResults() {
-            const phases = ['baseline', 'immediate', 'delayed'];
-            const phaseNames = ['기저선', '0분', '3분'];
+        // 데이터 저장 및 리셋
+        async function saveAndReset() {
+            showSection('section-saving');
+            document.getElementById('save-status').textContent = '서버에 저장하고 있습니다...';
 
-            // 각 시점별 상세 결과 테이블
-            phases.forEach((phase, idx) => {
-                const tbody = document.getElementById(`${phase}-results-body`);
-                tbody.innerHTML = '';
-
-                const phaseTrials = experimentData.trials.filter(t => t.phase === phase);
-
-                phaseTrials.forEach((trial, index) => {
-                    const row = tbody.insertRow();
-                    row.insertCell(0).textContent = index + 1;
-                    row.insertCell(1).textContent = trial.word;
-                    row.insertCell(2).textContent = trial.wordType;
-                    row.insertCell(3).textContent = trial.color;
-                    row.insertCell(4).textContent = trial.correct ? 'O' : 'X';
-                    row.insertCell(5).textContent = trial.rt;
+            try {
+                const response = await fetch('/api/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(experimentData)
                 });
 
-                // 평균 행 추가
-                const foodTrials = phaseTrials.filter(t => t.wordType === '음식' && t.correct);
-                const neutralTrials = phaseTrials.filter(t => t.wordType === '중립' && t.correct);
-                const allCorrect = phaseTrials.filter(t => t.correct);
+                if (!response.ok) {
+                    throw new Error('저장 실패');
+                }
 
-                // 정답이면서 RT가 3000ms 이하인 것만 계산
-                const validFoodTrials = foodTrials.filter(t => t.rt <= 3000);
-                const validNeutralTrials = neutralTrials.filter(t => t.rt <= 3000);
-                const validAllCorrect = allCorrect.filter(t => t.rt <= 3000);
+                // 저장 성공 - 완료 화면 표시
+                document.getElementById('complete-participant-id').textContent = experimentData.participantId;
+                showSection('section-complete');
 
-                const foodAvg = validFoodTrials.length > 0
-                    ? Math.round(validFoodTrials.reduce((sum, t) => sum + t.rt, 0) / validFoodTrials.length)
-                    : '-';
-                const neutralAvg = validNeutralTrials.length > 0
-                    ? Math.round(validNeutralTrials.reduce((sum, t) => sum + t.rt, 0) / validNeutralTrials.length)
-                    : '-';
-                const totalAvg = validAllCorrect.length > 0
-                    ? Math.round(validAllCorrect.reduce((sum, t) => sum + t.rt, 0) / validAllCorrect.length)
-                    : '-';
+                // 5초 카운트다운 후 리셋
+                let countdown = 5;
+                const timerDisplay = document.getElementById('reset-timer');
+                timerDisplay.textContent = countdown;
 
-                // 음식 평균 행
-                const foodRow = tbody.insertRow();
-                foodRow.className = 'average-row';
-                foodRow.insertCell(0).textContent = '';
-                foodRow.insertCell(1).textContent = '음식 평균';
-                foodRow.insertCell(2).textContent = '';
-                foodRow.insertCell(3).textContent = '';
-                foodRow.insertCell(4).textContent = '';
-                foodRow.insertCell(5).textContent = foodAvg;
+                const resetInterval = setInterval(() => {
+                    countdown--;
+                    timerDisplay.textContent = countdown;
 
-                // 중립 평균 행
-                const neutralRow = tbody.insertRow();
-                neutralRow.className = 'average-row';
-                neutralRow.insertCell(0).textContent = '';
-                neutralRow.insertCell(1).textContent = '중립 평균';
-                neutralRow.insertCell(2).textContent = '';
-                neutralRow.insertCell(3).textContent = '';
-                neutralRow.insertCell(4).textContent = '';
-                neutralRow.insertCell(5).textContent = neutralAvg;
+                    if (countdown <= 0) {
+                        clearInterval(resetInterval);
+                        resetExperiment();
+                    }
+                }, 1000);
 
-                // 전체 평균 행
-                const totalRow = tbody.insertRow();
-                totalRow.className = 'average-row';
-                totalRow.insertCell(0).textContent = '';
-                totalRow.insertCell(1).textContent = '전체 평균';
-                totalRow.insertCell(2).textContent = '';
-                totalRow.insertCell(3).textContent = '';
-                totalRow.insertCell(4).textContent = '';
-                totalRow.insertCell(5).textContent = totalAvg;
-            });
-
-            // 요약 테이블
-            const summaryBody = document.getElementById('summary-body');
-            summaryBody.innerHTML = '';
-
-            phases.forEach((phase, index) => {
-                const phaseTrials = experimentData.trials.filter(t => t.phase === phase);
-                const foodTrials = phaseTrials.filter(t => t.wordType === '음식' && t.correct);
-                const neutralTrials = phaseTrials.filter(t => t.wordType === '중립' && t.correct);
-                const allCorrect = phaseTrials.filter(t => t.correct);
-
-                // 정답이면서 RT가 3000ms 이하인 것만 계산
-                const validFoodTrials = foodTrials.filter(t => t.rt <= 3000);
-                const validNeutralTrials = neutralTrials.filter(t => t.rt <= 3000);
-                const validAllCorrect = allCorrect.filter(t => t.rt <= 3000);
-
-                const foodAvg = validFoodTrials.length > 0
-                    ? Math.round(validFoodTrials.reduce((sum, t) => sum + t.rt, 0) / validFoodTrials.length)
-                    : 0;
-                const neutralAvg = validNeutralTrials.length > 0
-                    ? Math.round(validNeutralTrials.reduce((sum, t) => sum + t.rt, 0) / validNeutralTrials.length)
-                    : 0;
-                const totalAvg = validAllCorrect.length > 0
-                    ? Math.round(validAllCorrect.reduce((sum, t) => sum + t.rt, 0) / validAllCorrect.length)
-                    : 0;
-
-                const row = summaryBody.insertRow();
-                row.insertCell(0).textContent = phaseNames[index];
-                row.insertCell(1).textContent = foodAvg;
-                row.insertCell(2).textContent = neutralAvg;
-                row.insertCell(3).textContent = totalAvg;
-            });
+            } catch (error) {
+                document.getElementById('save-status').textContent = '저장에 실패했습니다. 관리자에게 문의하세요.';
+                console.error('Save error:', error);
+            }
         }
 
-        // CSV 다운로드
-        function downloadData() {
-            let csv = '참가자ID,시점,시행번호,단어,단어유형,색상,반응,정답여부,RT,유효여부\n';
+        // 실험 초기화 (다음 참가자를 위해)
+        function resetExperiment() {
+            // 데이터 초기화
+            experimentData.participantId = '';
+            experimentData.trials = [];
+            experimentData.mathAnswers = [];
 
-            experimentData.trials.forEach(trial => {
-                const isValid = trial.correct && trial.rt <= 3000;
-                csv += `${experimentData.participantId},${trial.phase},${trial.trialNumber},${trial.word},${trial.wordType},${trial.color},${trial.response},${trial.correct},${trial.rt},${isValid}\n`;
-            });
+            // 변수 초기화
+            currentPhase = '';
+            currentTrial = 0;
+            totalTrials = 0;
+            currentTrialData = null;
+            trialStartTime = 0;
+            awaitingResponse = false;
+            stroopTrials = [];
+            practiceTrialIndex = 0;
+            shuffledPracticeWords = [];
+            mathTimer = 180;
+            mathProblemCount = 0;
 
-            downloadCSV(csv, `stroop_data_${experimentData.participantId}.csv`);
-        }
+            // 입력 필드 초기화
+            document.getElementById('participantId').value = '';
 
-        function downloadSummary() {
-            let csv = '참가자ID,시점,음식평균RT,중립평균RT,전체평균RT\n';
-
-            const phases = ['baseline', 'immediate', 'delayed'];
-            const phaseNames = ['기저선', '0분', '3분'];
-
-            phases.forEach((phase, index) => {
-                const phaseTrials = experimentData.trials.filter(t => t.phase === phase);
-                const foodTrials = phaseTrials.filter(t => t.wordType === '음식' && t.correct);
-                const neutralTrials = phaseTrials.filter(t => t.wordType === '중립' && t.correct);
-                const allCorrect = phaseTrials.filter(t => t.correct);
-
-                const foodAvg = foodTrials.length > 0
-                    ? Math.round(foodTrials.reduce((sum, t) => sum + t.rt, 0) / foodTrials.length)
-                    : 0;
-                const neutralAvg = neutralTrials.length > 0
-                    ? Math.round(neutralTrials.reduce((sum, t) => sum + t.rt, 0) / neutralTrials.length)
-                    : 0;
-                const totalAvg = allCorrect.length > 0
-                    ? Math.round(allCorrect.reduce((sum, t) => sum + t.rt, 0) / allCorrect.length)
-                    : 0;
-
-                csv += `${experimentData.participantId},${phaseNames[index]},${foodAvg},${neutralAvg},${totalAvg}\n`;
-            });
-
-            downloadCSV(csv, `stroop_summary_${experimentData.participantId}.csv`);
-        }
-
-        function downloadCSV(content, filename) {
-            const BOM = '\uFEFF';
-            const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
+            // 첫 화면으로
+            showSection('section-survey');
         }
 
         // 섹션 전환
