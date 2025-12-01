@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>숏폼 스트룹 실험</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .stroop-display {
+            text-align: center;
+            padding: 60px 0;
+        }
+
+        .fixation {
+            font-size: 48px;
+            color: #333;
+        }
+
+        .word {
+            font-size: 72px;
+            font-weight: bold;
+            margin: 40px 0;
+        }
+
+        .key-mapping {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .key-box {
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .key-box .key {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .key-box .color-name {
+            font-size: 18px;
+        }
+
+        .instructions {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 32px;
+            color: #4CAF50;
+            margin: 20px 0;
+        }
+
+        .math-problem {
+            text-align: center;
+            font-size: 48px;
+            margin: 40px 0;
+        }
+
+        .math-input {
+            text-align: center;
+            font-size: 24px;
+            width: 200px;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .progress {
+            text-align: center;
+            margin: 20px 0;
+            color: #777;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .data-summary {
+            margin-top: 30px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .data-table th {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .data-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .complete-message {
+            text-align: center;
+            font-size: 24px;
+            color: #4CAF50;
+            margin: 40px 0;
+        }
+
+        .results-section {
+            margin-bottom: 30px;
+        }
+
+        .results-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .average-row {
+            background: #e8f5e9 !important;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 1. 참가자 ID 입력 -->
+        <div id="section-survey" class="section active">
+            <h1>숏폼 스트룹 실험</h1>
+            <h2>참가자 정보</h2>
+
+            <div class="form-group">
+                <label>참가자 ID:</label>
+                <input type="text" id="participantId" placeholder="예: P001">
+            </div>
+
+            <button onclick="startExperiment()">시작하기</button>
+        </div>
+
+        <!-- 2. 키보드 매핑 학습 -->
+        <div id="section-mapping" class="section">
+            <h2>키보드 매핑 학습</h2>
+            <div class="instructions">
+                다음 키를 사용하여 색상을 선택합니다:<br>
+                <strong>단어의 의미를 무시하고, 글자의 색상만 판단하세요.</strong>
+            </div>
+
+            <div class="key-mapping">
+                <div class="key-box">
+                    <div class="key">R</div>
+                    <div class="color-name" style="color: red;">빨강</div>
+                </div>
+                <div class="key-box">
+                    <div class="key">G</div>
+                    <div class="color-name" style="color: green;">초록</div>
+                </div>
+                <div class="key-box">
+                    <div class="key">Y</div>
+                    <div class="color-name" style="color: #FFD700;">노랑</div>
+                </div>
+            </div>
+
+            <button onclick="startPractice()">연습 시작</button>
+        </div>
+
+        <!-- 3. 연습 시행 -->
+        <div id="section-practice" class="section">
+            <h2>연습 시행</h2>
+            <div class="instructions">
+                글자의 <strong>색상</strong>에 맞는 키를 누르세요. (단어 의미는 무시)
+            </div>
+            <div class="progress" id="practice-progress"></div>
+            <div class="stroop-display" id="practice-display"></div>
+        </div>
+
+        <!-- 3-1. 연습 완료 -->
+        <div id="section-practice-complete" class="section">
+            <h2>연습 완료</h2>
+            <div class="complete-message">연습이 완료되었습니다!</div>
+            <div class="instructions">
+                이제 본 과제를 시작합니다. 준비가 되면 아래 버튼을 눌러주세요.
+            </div>
+            <button onclick="startCountdown('baseline')">기저선 측정 시작</button>
+        </div>
+
+        <!-- 카운트다운 -->
+        <div id="section-countdown" class="section">
+            <div class="stroop-display">
+                <div class="countdown-number" id="countdown-display" style="font-size: 120px; font-weight: bold; color: #4CAF50;">3</div>
+            </div>
+        </div>
+
+        <!-- 4. 기저선 스트룹 -->
+        <div id="section-baseline" class="section">
+            <h2>기저선 측정</h2>
+            <div class="instructions">
+                최대한 빠르고 정확하게 반응하세요.
+            </div>
+            <div class="progress" id="baseline-progress"></div>
+            <div class="stroop-display" id="baseline-display"></div>
+        </div>
+
+        <!-- 4-1. 기저선 완료 -->
+        <div id="section-baseline-complete" class="section">
+            <h2>기저선 측정 완료</h2>
+            <div class="complete-message">기저선 측정이 완료되었습니다!</div>
+            <div class="instructions">
+                실험 진행자의 안내에 따라 숏폼 영상을 시청합니다.
+            </div>
+            <button onclick="showVideoSection()">다음</button>
+        </div>
+
+        <!-- 5. 숏폼 안내 -->
+        <div id="section-video" class="section">
+            <h2>숏폼 시청</h2>
+            <div class="warning">
+                <strong>실험 진행자:</strong><br>
+                지금부터 참가자에게 5분간 먹방 숏폼 영상을 보여주세요.
+            </div>
+            <div class="instructions">
+                영상 시청이 완료되면 아래 버튼을 눌러 다음 단계로 진행하세요.
+            </div>
+            <button onclick="startCountdown('immediate')">영상 시청 완료</button>
+        </div>
+
+        <!-- 6. 0분 스트룹 -->
+        <div id="section-immediate" class="section">
+            <h2>0분 측정 (영상 직후)</h2>
+            <div class="instructions">
+                동일한 과제를 수행합니다. 최대한 빠르고 정확하게 반응하세요.
+            </div>
+            <div class="progress" id="immediate-progress"></div>
+            <div class="stroop-display" id="immediate-display"></div>
+        </div>
+
+        <!-- 6-1. 0분 측정 완료 -->
+        <div id="section-immediate-complete" class="section">
+            <h2>0분 측정 완료</h2>
+            <div class="complete-message">0분 측정이 완료되었습니다!</div>
+            <div class="instructions">
+                이제 3분간 연산 과제를 수행합니다.
+            </div>
+            <button onclick="showMathSection()">연산 과제 시작</button>
+        </div>
+
+        <!-- 7. 연산 과제 -->
+        <div id="section-math" class="section">
+            <h2>연산 과제</h2>
+            <div class="instructions">
+                3분간 간단한 덧셈 문제를 풀어주세요.
+            </div>
+            <div class="timer" id="math-timer">03:00</div>
+            <div class="progress" id="math-progress"></div>
+            <div class="math-problem" id="math-problem"></div>
+            <input type="number" class="math-input" id="math-input" placeholder="답 입력">
+            <button onclick="submitMath()" style="margin-top: 20px;">다음</button>
+        </div>
+
+        <!-- 7-1. 연산 과제 완료 -->
+        <div id="section-math-complete" class="section">
+            <h2>연산 과제 완료</h2>
+            <div class="complete-message">연산 과제가 완료되었습니다!</div>
+            <div class="instructions">
+                마지막 스트룹 과제를 시작합니다.
+            </div>
+            <button onclick="startCountdown('delayed')">3분 측정 시작</button>
+        </div>
+
+        <!-- 8. 3분 스트룹 -->
+        <div id="section-delayed" class="section">
+            <h2>3분 측정 (연산 과제 후)</h2>
+            <div class="instructions">
+                마지막 과제입니다. 최대한 빠르고 정확하게 반응하세요.
+            </div>
+            <div class="progress" id="delayed-progress"></div>
+            <div class="stroop-display" id="delayed-display"></div>
+        </div>
+
+        <!-- 9. 결과 -->
+        <div id="section-results" class="section">
+            <h2>실험 완료</h2>
+            <div class="instructions">
+                실험이 완료되었습니다. 아래에서 모든 시행의 반응시간을 확인할 수 있습니다.
+            </div>
+
+            <div class="results-section">
+                <h3>기저선 측정 결과</h3>
+                <table class="data-table" id="baseline-results-table">
+                    <thead>
+                        <tr>
+                            <th>시행</th>
+                            <th>단어</th>
+                            <th>단어유형</th>
+                            <th>색상</th>
+                            <th>정답여부</th>
+                            <th>RT (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="baseline-results-body"></tbody>
+                </table>
+            </div>
+
+            <div class="results-section">
+                <h3>0분 측정 결과 (영상 직후)</h3>
+                <table class="data-table" id="immediate-results-table">
+                    <thead>
+                        <tr>
+                            <th>시행</th>
+                            <th>단어</th>
+                            <th>단어유형</th>
+                            <th>색상</th>
+                            <th>정답여부</th>
+                            <th>RT (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="immediate-results-body"></tbody>
+                </table>
+            </div>
+
+            <div class="results-section">
+                <h3>3분 측정 결과 (연산 과제 후)</h3>
+                <table class="data-table" id="delayed-results-table">
+                    <thead>
+                        <tr>
+                            <th>시행</th>
+                            <th>단어</th>
+                            <th>단어유형</th>
+                            <th>색상</th>
+                            <th>정답여부</th>
+                            <th>RT (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="delayed-results-body"></tbody>
+                </table>
+            </div>
+
+            <div class="results-section">
+                <h3>전체 요약</h3>
+                <table class="data-table" id="summary-table">
+                    <thead>
+                        <tr>
+                            <th>시점</th>
+                            <th>음식 평균 RT (ms)</th>
+                            <th>중립 평균 RT (ms)</th>
+                            <th>전체 평균 RT (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-body"></tbody>
+                </table>
+            </div>
+
+            <div class="button-group">
+                <button onclick="downloadData()">전체 데이터 다운로드 (CSV)</button>
+                <button onclick="downloadSummary()">요약 데이터 다운로드 (CSV)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 실험 데이터
+        const experimentData = {
+            participantId: '',
+            trials: [],
+            mathAnswers: []
+        };
+
+        // 색상 정의 (RGY)
+        const colors = ['red', 'green', 'yellow'];
+        const colorNames = ['빨강', '초록', '노랑'];
+        const colorKeys = ['r', 'g', 'y'];
+
+        // 연습용 단어-색상 매핑 (일치하는 조합)
+        const practiceWords = [
+            { word: '빨강', color: 'red' },
+            { word: '초록', color: 'green' },
+            { word: '노랑', color: 'yellow' }
+        ];
+
+        // 음식 단어와 허용 색상
+        // 레몬(Y, R), 짬뽕(R, Y), 떡볶이(R, G), 소주(G, R), 카레(Y, G)
+        const foodWordColors = {
+            '레몬': ['yellow', 'red'],
+            '짬뽕': ['red', 'yellow'],
+            '떡볶이': ['red', 'green'],
+            '소주': ['green', 'red'],
+            '카레': ['yellow', 'green']
+        };
+
+        // 중립 단어와 허용 색상
+        // 황금(Y, G), 잔디(G, R), 루비(R, Y), 태양(R, G), 병아리(Y, R)
+        const neutralWordColors = {
+            '황금': ['yellow', 'green'],
+            '잔디': ['green', 'red'],
+            '루비': ['red', 'yellow'],
+            '태양': ['red', 'green'],
+            '병아리': ['yellow', 'red']
+        };
+
+        // 전체 실험용 시행 저장 (3개 phase × 20시행 = 60시행)
+        let allPhaseTrials = {
+            baseline: [],
+            immediate: [],
+            delayed: []
+        };
+
+        // 각 phase별로 20개 시행 생성 (모든 단어-색상 조합이 한 번씩)
+        function generateTrialsForPhase() {
+            const trials = [];
+
+            // 음식 단어: 5개 × 2색상 = 10시행
+            Object.keys(foodWordColors).forEach(word => {
+                foodWordColors[word].forEach(color => {
+                    trials.push({
+                        word: word,
+                        wordType: '음식',
+                        color: color
+                    });
+                });
+            });
+
+            // 중립 단어: 5개 × 2색상 = 10시행
+            Object.keys(neutralWordColors).forEach(word => {
+                neutralWordColors[word].forEach(color => {
+                    trials.push({
+                        word: word,
+                        wordType: '중립',
+                        color: color
+                    });
+                });
+            });
+
+            // 제약조건에 맞게 섞기 (같은 색상 3번 연속 금지, 같은 단어 2번 연속 금지)
+            return shuffleWithColorConstraint(trials);
+        }
+
+        // 실험 시작 시 모든 시행을 미리 생성
+        function generateAllTrials() {
+            const phases = ['baseline', 'immediate', 'delayed'];
+            phases.forEach(phase => {
+                allPhaseTrials[phase] = generateTrialsForPhase();
+            });
+        }
+
+        // 특정 phase의 시행 가져오기
+        function getTrialsForPhase(phase) {
+            return allPhaseTrials[phase];
+        }
+
+        // 배열 섞기
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // 같은 색상이 3번 연속되지 않고, 같은 단어가 2번 연속되지 않도록 섞기
+        function shuffleWithColorConstraint(trials) {
+            let attempts = 0;
+            const maxAttempts = 100;
+
+            while (attempts < maxAttempts) {
+                const shuffled = shuffleArray(trials);
+                let valid = true;
+
+                for (let i = 1; i < shuffled.length; i++) {
+                    // 같은 단어 2번 연속 체크
+                    if (shuffled[i].word === shuffled[i-1].word) {
+                        valid = false;
+                        break;
+                    }
+
+                    // 3번 연속 같은 색상 체크
+                    if (i >= 2 &&
+                        shuffled[i].color === shuffled[i-1].color &&
+                        shuffled[i].color === shuffled[i-2].color) {
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if (valid) {
+                    return shuffled;
+                }
+                attempts++;
+            }
+
+            // 최대 시도 후에도 실패하면 그냥 섞인 배열 반환
+            return shuffleArray(trials);
+        }
+
+        let currentPhase = '';
+        let currentTrial = 0;
+        let totalTrials = 0;
+        let currentTrialData = null;
+        let trialStartTime = 0;
+        let awaitingResponse = false;
+        let stroopTrials = [];
+        let practiceTrialIndex = 0;
+
+        // 참가자 ID 입력 완료
+        function startExperiment() {
+            const id = document.getElementById('participantId').value.trim();
+
+            if (!id) {
+                alert('참가자 ID를 입력해주세요.');
+                return;
+            }
+
+            experimentData.participantId = id;
+
+            // 모든 시행 미리 생성
+            generateAllTrials();
+
+            showSection('section-mapping');
+        }
+
+        // 연습 시작
+        function startPractice() {
+            currentPhase = 'practice';
+            currentTrial = 0;
+            totalTrials = 9; // 3개 단어 * 3번 = 9번
+            practiceTrialIndex = 0;
+            showSection('section-practice');
+            runPracticeTrial();
+        }
+
+        // 연습 시행 실행
+        let shuffledPracticeWords = [];
+
+        function runPracticeTrial() {
+            const display = document.getElementById('practice-display');
+
+            if (currentTrial >= totalTrials) {
+                showSection('section-practice-complete');
+                return;
+            }
+
+            // 첫 시행이거나 3개 다 사용했으면 새로 섞기
+            if (currentTrial % 3 === 0) {
+                shuffledPracticeWords = shuffleArray([...practiceWords]);
+            }
+
+            document.getElementById('practice-progress').textContent = `${currentTrial + 1} / ${totalTrials}`;
+
+            // 응시점 표시
+            display.innerHTML = '<div class="fixation">+</div>';
+
+            setTimeout(() => {
+                // 연습은 일치하는 조합으로 (섞인 순서로)
+                const practiceItem = shuffledPracticeWords[currentTrial % 3];
+
+                currentTrialData = {
+                    word: practiceItem.word,
+                    color: practiceItem.color
+                };
+
+                display.innerHTML = `<div class="word" style="color: ${currentTrialData.color};">${currentTrialData.word}</div>`;
+                trialStartTime = Date.now();
+                awaitingResponse = true;
+            }, 500);
+        }
+
+        // 기저선 시작
+        function startBaseline() {
+            currentPhase = 'baseline';
+            currentTrial = 0;
+            stroopTrials = getTrialsForPhase('baseline');
+            totalTrials = stroopTrials.length;
+            showSection('section-baseline');
+            setTimeout(() => runStroopTrial('baseline'), 500);
+        }
+
+        // 스트룹 시행 실행
+        function runStroopTrial(phase) {
+            const displayId = phase + '-display';
+            const progressId = phase + '-progress';
+            const display = document.getElementById(displayId);
+
+            if (currentTrial >= totalTrials) {
+                // 다음 단계로
+                if (phase === 'baseline') {
+                    showSection('section-baseline-complete');
+                } else if (phase === 'immediate') {
+                    showSection('section-immediate-complete');
+                } else if (phase === 'delayed') {
+                    showSection('section-results');
+                    displayResults();
+                }
+                return;
+            }
+
+            // 진행률 표시
+            document.getElementById(progressId).textContent = `${currentTrial + 1} / ${totalTrials}`;
+
+            // 응시점 표시
+            display.innerHTML = '<div class="fixation">+</div>';
+
+            setTimeout(() => {
+                currentTrialData = stroopTrials[currentTrial];
+
+                display.innerHTML = `<div class="word" style="color: ${currentTrialData.color};">${currentTrialData.word}</div>`;
+                trialStartTime = Date.now();
+                awaitingResponse = true;
+            }, 500);
+        }
+
+        // 키보드 입력 처리
+        document.addEventListener('keydown', (e) => {
+            if (!awaitingResponse) return;
+
+            const key = e.key.toLowerCase();
+            if (!colorKeys.includes(key)) return;
+
+            awaitingResponse = false;
+            const rt = Date.now() - trialStartTime;
+            const responseIndex = colorKeys.indexOf(key);
+            const correctIndex = colors.indexOf(currentTrialData.color);
+            const isCorrect = responseIndex === correctIndex;
+
+            // 데이터 저장 (연습 제외)
+            if (currentPhase !== 'practice') {
+                experimentData.trials.push({
+                    phase: currentPhase,
+                    trialNumber: currentTrial + 1,
+                    word: currentTrialData.word,
+                    wordType: currentTrialData.wordType,
+                    color: colorNames[correctIndex],
+                    response: colorNames[responseIndex],
+                    correct: isCorrect,
+                    rt: rt
+                });
+            }
+
+            // 다음 시행
+            currentTrial++;
+
+            // 빈 화면
+            if (currentPhase === 'practice') {
+                document.getElementById('practice-display').innerHTML = '';
+                setTimeout(() => runPracticeTrial(), 500);
+            } else {
+                const displayId = currentPhase + '-display';
+                document.getElementById(displayId).innerHTML = '';
+                setTimeout(() => runStroopTrial(currentPhase), 500);
+            }
+        });
+
+        // 영상 섹션 표시
+        function showVideoSection() {
+            showSection('section-video');
+        }
+
+        // 3초 카운트다운 후 해당 phase 시작
+        function startCountdown(phase) {
+            showSection('section-countdown');
+            let count = 3;
+            const display = document.getElementById('countdown-display');
+            display.textContent = count;
+
+            const countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    display.textContent = count;
+                } else {
+                    clearInterval(countdownInterval);
+                    // 해당 phase 시작
+                    if (phase === 'baseline') {
+                        startBaseline();
+                    } else if (phase === 'immediate') {
+                        afterVideo();
+                    } else if (phase === 'delayed') {
+                        startDelayed();
+                    }
+                }
+            }, 1000);
+        }
+
+        // 영상 시청 완료
+        function afterVideo() {
+            currentPhase = 'immediate';
+            currentTrial = 0;
+            stroopTrials = getTrialsForPhase('immediate');
+            totalTrials = stroopTrials.length;
+            showSection('section-immediate');
+            setTimeout(() => runStroopTrial('immediate'), 500);
+        }
+
+        // 연산 과제 섹션 표시
+        function showMathSection() {
+            showSection('section-math');
+            startMathTask();
+        }
+
+        // 연산 과제
+        let mathTimer = 180; // 3분 = 180초
+        let mathTimerInterval;
+        let currentMathProblem = {};
+        let mathProblemCount = 0;
+
+        function startMathTask() {
+            mathProblemCount = 0;
+            mathTimer = 180;
+            updateMathTimer();
+            mathTimerInterval = setInterval(() => {
+                mathTimer--;
+                updateMathTimer();
+                if (mathTimer <= 0) {
+                    clearInterval(mathTimerInterval);
+                    showSection('section-math-complete');
+                }
+            }, 1000);
+
+            generateMathProblem();
+            document.getElementById('math-input').focus();
+        }
+
+        function updateMathTimer() {
+            const minutes = Math.floor(mathTimer / 60);
+            const seconds = mathTimer % 60;
+            document.getElementById('math-timer').textContent =
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function generateMathProblem() {
+            const a = Math.floor(Math.random() * 90) + 10; // 10-99
+            const b = Math.floor(Math.random() * 90) + 10;
+            currentMathProblem = { a, b, answer: a + b };
+
+            document.getElementById('math-problem').textContent = `${a} + ${b} = ?`;
+            document.getElementById('math-progress').textContent = `문제 ${mathProblemCount + 1}`;
+            document.getElementById('math-input').value = '';
+        }
+
+        function submitMath() {
+            if (mathTimer <= 0) return;
+
+            const userAnswer = parseInt(document.getElementById('math-input').value);
+            if (isNaN(userAnswer)) {
+                alert('숫자를 입력해주세요.');
+                return;
+            }
+
+            experimentData.mathAnswers.push({
+                problem: `${currentMathProblem.a} + ${currentMathProblem.b}`,
+                correctAnswer: currentMathProblem.answer,
+                userAnswer: userAnswer,
+                correct: userAnswer === currentMathProblem.answer
+            });
+
+            mathProblemCount++;
+            generateMathProblem();
+            document.getElementById('math-input').focus();
+        }
+
+        // Enter 키로도 제출
+        document.getElementById('math-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitMath();
+            }
+        });
+
+        // 3분 측정 시작
+        function startDelayed() {
+            currentPhase = 'delayed';
+            currentTrial = 0;
+            stroopTrials = getTrialsForPhase('delayed');
+            totalTrials = stroopTrials.length;
+            showSection('section-delayed');
+            setTimeout(() => runStroopTrial('delayed'), 500);
+        }
+
+        // 결과 표시
+        function displayResults() {
+            const phases = ['baseline', 'immediate', 'delayed'];
+            const phaseNames = ['기저선', '0분', '3분'];
+
+            // 각 시점별 상세 결과 테이블
+            phases.forEach((phase, idx) => {
+                const tbody = document.getElementById(`${phase}-results-body`);
+                tbody.innerHTML = '';
+
+                const phaseTrials = experimentData.trials.filter(t => t.phase === phase);
+
+                phaseTrials.forEach((trial, index) => {
+                    const row = tbody.insertRow();
+                    row.insertCell(0).textContent = index + 1;
+                    row.insertCell(1).textContent = trial.word;
+                    row.insertCell(2).textContent = trial.wordType;
+                    row.insertCell(3).textContent = trial.color;
+                    row.insertCell(4).textContent = trial.correct ? 'O' : 'X';
+                    row.insertCell(5).textContent = trial.rt;
+                });
+
+                // 평균 행 추가
+                const foodTrials = phaseTrials.filter(t => t.wordType === '음식' && t.correct);
+                const neutralTrials = phaseTrials.filter(t => t.wordType === '중립' && t.correct);
+                const allCorrect = phaseTrials.filter(t => t.correct);
+
+                // 정답이면서 RT가 3000ms 이하인 것만 계산
+                const validFoodTrials = foodTrials.filter(t => t.rt <= 3000);
+                const validNeutralTrials = neutralTrials.filter(t => t.rt <= 3000);
+                const validAllCorrect = allCorrect.filter(t => t.rt <= 3000);
+
+                const foodAvg = validFoodTrials.length > 0
+                    ? Math.round(validFoodTrials.reduce((sum, t) => sum + t.rt, 0) / validFoodTrials.length)
+                    : '-';
+                const neutralAvg = validNeutralTrials.length > 0
+                    ? Math.round(validNeutralTrials.reduce((sum, t) => sum + t.rt, 0) / validNeutralTrials.length)
+                    : '-';
+                const totalAvg = validAllCorrect.length > 0
+                    ? Math.round(validAllCorrect.reduce((sum, t) => sum + t.rt, 0) / validAllCorrect.length)
+                    : '-';
+
+                // 음식 평균 행
+                const foodRow = tbody.insertRow();
+                foodRow.className = 'average-row';
+                foodRow.insertCell(0).textContent = '';
+                foodRow.insertCell(1).textContent = '음식 평균';
+                foodRow.insertCell(2).textContent = '';
+                foodRow.insertCell(3).textContent = '';
+                foodRow.insertCell(4).textContent = '';
+                foodRow.insertCell(5).textContent = foodAvg;
+
+                // 중립 평균 행
+                const neutralRow = tbody.insertRow();
+                neutralRow.className = 'average-row';
+                neutralRow.insertCell(0).textContent = '';
+                neutralRow.insertCell(1).textContent = '중립 평균';
+                neutralRow.insertCell(2).textContent = '';
+                neutralRow.insertCell(3).textContent = '';
+                neutralRow.insertCell(4).textContent = '';
+                neutralRow.insertCell(5).textContent = neutralAvg;
+
+                // 전체 평균 행
+                const totalRow = tbody.insertRow();
+                totalRow.className = 'average-row';
+                totalRow.insertCell(0).textContent = '';
+                totalRow.insertCell(1).textContent = '전체 평균';
+                totalRow.insertCell(2).textContent = '';
+                totalRow.insertCell(3).textContent = '';
+                totalRow.insertCell(4).textContent = '';
+                totalRow.insertCell(5).textContent = totalAvg;
+            });
+
+            // 요약 테이블
+            const summaryBody = document.getElementById('summary-body');
+            summaryBody.innerHTML = '';
+
+            phases.forEach((phase, index) => {
+                const phaseTrials = experimentData.trials.filter(t => t.phase === phase);
+                const foodTrials = phaseTrials.filter(t => t.wordType === '음식' && t.correct);
+                const neutralTrials = phaseTrials.filter(t => t.wordType === '중립' && t.correct);
+                const allCorrect = phaseTrials.filter(t => t.correct);
+
+                // 정답이면서 RT가 3000ms 이하인 것만 계산
+                const validFoodTrials = foodTrials.filter(t => t.rt <= 3000);
+                const validNeutralTrials = neutralTrials.filter(t => t.rt <= 3000);
+                const validAllCorrect = allCorrect.filter(t => t.rt <= 3000);
+
+                const foodAvg = validFoodTrials.length > 0
+                    ? Math.round(validFoodTrials.reduce((sum, t) => sum + t.rt, 0) / validFoodTrials.length)
+                    : 0;
+                const neutralAvg = validNeutralTrials.length > 0
+                    ? Math.round(validNeutralTrials.reduce((sum, t) => sum + t.rt, 0) / validNeutralTrials.length)
+                    : 0;
+                const totalAvg = validAllCorrect.length > 0
+                    ? Math.round(validAllCorrect.reduce((sum, t) => sum + t.rt, 0) / validAllCorrect.length)
+                    : 0;
+
+                const row = summaryBody.insertRow();
+                row.insertCell(0).textContent = phaseNames[index];
+                row.insertCell(1).textContent = foodAvg;
+                row.insertCell(2).textContent = neutralAvg;
+                row.insertCell(3).textContent = totalAvg;
+            });
+        }
+
+        // CSV 다운로드
+        function downloadData() {
+            let csv = '참가자ID,시점,시행번호,단어,단어유형,색상,반응,정답여부,RT,유효여부\n';
+
+            experimentData.trials.forEach(trial => {
+                const isValid = trial.correct && trial.rt <= 3000;
+                csv += `${experimentData.participantId},${trial.phase},${trial.trialNumber},${trial.word},${trial.wordType},${trial.color},${trial.response},${trial.correct},${trial.rt},${isValid}\n`;
+            });
+
+            downloadCSV(csv, `stroop_data_${experimentData.participantId}.csv`);
+        }
+
+        function downloadSummary() {
+            let csv = '참가자ID,시점,음식평균RT,중립평균RT,전체평균RT\n';
+
+            const phases = ['baseline', 'immediate', 'delayed'];
+            const phaseNames = ['기저선', '0분', '3분'];
+
+            phases.forEach((phase, index) => {
+                const phaseTrials = experimentData.trials.filter(t => t.phase === phase);
+                const foodTrials = phaseTrials.filter(t => t.wordType === '음식' && t.correct);
+                const neutralTrials = phaseTrials.filter(t => t.wordType === '중립' && t.correct);
+                const allCorrect = phaseTrials.filter(t => t.correct);
+
+                const foodAvg = foodTrials.length > 0
+                    ? Math.round(foodTrials.reduce((sum, t) => sum + t.rt, 0) / foodTrials.length)
+                    : 0;
+                const neutralAvg = neutralTrials.length > 0
+                    ? Math.round(neutralTrials.reduce((sum, t) => sum + t.rt, 0) / neutralTrials.length)
+                    : 0;
+                const totalAvg = allCorrect.length > 0
+                    ? Math.round(allCorrect.reduce((sum, t) => sum + t.rt, 0) / allCorrect.length)
+                    : 0;
+
+                csv += `${experimentData.participantId},${phaseNames[index]},${foodAvg},${neutralAvg},${totalAvg}\n`;
+            });
+
+            downloadCSV(csv, `stroop_summary_${experimentData.participantId}.csv`);
+        }
+
+        function downloadCSV(content, filename) {
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        // 섹션 전환
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+        }
+    </script>
+</body>
+</html>
