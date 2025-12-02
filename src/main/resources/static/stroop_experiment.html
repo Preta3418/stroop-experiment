@@ -28,6 +28,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             max-width: 900px;
             width: 100%;
+            min-height: 600px;
         }
 
         h1 {
@@ -828,9 +829,77 @@
             const BOM = '\uFEFF';
             let csv = '참가자ID,시점,시행번호,단어,단어유형,색상,반응,정답여부,RT,유효여부\n';
 
+            // 유효 기준: 정답 + RT 200ms 이상 2000ms 이하
+            const isValidTrial = (trial) => trial.correct && trial.rt >= 200 && trial.rt <= 2000;
+
             experimentData.trials.forEach(trial => {
-                const isValid = trial.correct && trial.rt <= 3000;
+                const isValid = isValidTrial(trial);
                 csv += `${experimentData.participantId},${trial.phase},${trial.trialNumber},${trial.word},${trial.wordType},${trial.color},${trial.response},${trial.correct},${trial.rt},${isValid}\n`;
+            });
+
+            // 평균 및 단어별 비교 테이블 추가
+            const phases = ['baseline', 'immediate', 'delayed'];
+            const phaseNames = ['기저선', '0분', '3분'];
+            const allWords = ['레몬', '짬뽕', '떡볶이', '소주', '카레', '황금', '잔디', '루비', '태양', '병아리'];
+            const wordTypes = {
+                '레몬': '음식', '짬뽕': '음식', '떡볶이': '음식', '소주': '음식', '카레': '음식',
+                '황금': '중립', '잔디': '중립', '루비': '중립', '태양': '중립', '병아리': '중립'
+            };
+
+            // 평균 RT 및 주의 편향 점수 테이블
+            csv += `\n평균RT_및_주의편향점수\n`;
+            csv += '시점,음식_평균RT,중립_평균RT,전체_평균RT,주의편향점수\n';
+
+            phases.forEach((phase, idx) => {
+                const phaseTrials = experimentData.trials.filter(t => t.phase === phase && isValidTrial(t));
+                const foodTrials = phaseTrials.filter(t => t.wordType === '음식');
+                const neutralTrials = phaseTrials.filter(t => t.wordType === '중립');
+
+                const foodAvg = foodTrials.length > 0
+                    ? Math.round(foodTrials.reduce((sum, t) => sum + t.rt, 0) / foodTrials.length)
+                    : '';
+                const neutralAvg = neutralTrials.length > 0
+                    ? Math.round(neutralTrials.reduce((sum, t) => sum + t.rt, 0) / neutralTrials.length)
+                    : '';
+                const totalAvg = phaseTrials.length > 0
+                    ? Math.round(phaseTrials.reduce((sum, t) => sum + t.rt, 0) / phaseTrials.length)
+                    : '';
+
+                // 주의 편향 점수 = 음식 평균 RT - 중립 평균 RT
+                const biasScore = (foodAvg !== '' && neutralAvg !== '') ? (foodAvg - neutralAvg) : '';
+
+                csv += `${phaseNames[idx]},${foodAvg},${neutralAvg},${totalAvg},${biasScore}\n`;
+            });
+
+            // 단어별 비교 테이블
+            phases.forEach((phase, idx) => {
+                csv += `\n${phaseNames[idx]}_단어별비교\n`;
+                csv += '단어,단어유형,빨강_RT,초록_RT,노랑_RT,차이\n';
+
+                const phaseTrials = experimentData.trials.filter(t => t.phase === phase);
+
+                allWords.forEach(word => {
+                    const wordTrials = phaseTrials.filter(t => t.word === word && isValidTrial(t));
+
+                    let redRT = '';
+                    let greenRT = '';
+                    let yellowRT = '';
+
+                    wordTrials.forEach(t => {
+                        if (t.color === '빨강') redRT = t.rt;
+                        else if (t.color === '초록') greenRT = t.rt;
+                        else if (t.color === '노랑') yellowRT = t.rt;
+                    });
+
+                    // 차이 계산 (두 색상 RT의 차이)
+                    const rts = [redRT, greenRT, yellowRT].filter(rt => rt !== '');
+                    let diff = '';
+                    if (rts.length === 2) {
+                        diff = Math.abs(rts[0] - rts[1]);
+                    }
+
+                    csv += `${word},${wordTypes[word]},${redRT},${greenRT},${yellowRT},${diff}\n`;
+                });
             });
 
             return BOM + csv;
