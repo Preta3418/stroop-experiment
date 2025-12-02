@@ -341,8 +341,16 @@
     <script>
         let participantToDelete = null;
 
-        // 페이지 로드 시 참가자 목록 불러오기
-        document.addEventListener('DOMContentLoaded', loadParticipants);
+        // 페이지 로드 시 비밀번호 확인
+        document.addEventListener('DOMContentLoaded', function() {
+            const password = prompt('비밀번호를 입력하세요:');
+            if (password !== '1234') {
+                alert('비밀번호가 틀렸습니다.');
+                window.location.href = '/';
+                return;
+            }
+            loadParticipants();
+        });
 
         // 참가자 목록 불러오기
         async function loadParticipants() {
