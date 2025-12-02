@@ -823,18 +823,32 @@
             setTimeout(() => runStroopTrial('delayed'), 500);
         }
 
+        // CSV 문자열 생성
+        function buildCsvString() {
+            const BOM = '\uFEFF';
+            let csv = '참가자ID,시점,시행번호,단어,단어유형,색상,반응,정답여부,RT,유효여부\n';
+
+            experimentData.trials.forEach(trial => {
+                const isValid = trial.correct && trial.rt <= 3000;
+                csv += `${experimentData.participantId},${trial.phase},${trial.trialNumber},${trial.word},${trial.wordType},${trial.color},${trial.response},${trial.correct},${trial.rt},${isValid}\n`;
+            });
+
+            return BOM + csv;
+        }
+
         // 데이터 저장 및 리셋
         async function saveAndReset() {
             showSection('section-saving');
             document.getElementById('save-status').textContent = '서버에 저장하고 있습니다...';
 
             try {
-                const response = await fetch('/api/save', {
+                const csv = buildCsvString();
+                const response = await fetch(`/api/save?participantId=${experimentData.participantId}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'text/plain; charset=UTF-8'
                     },
-                    body: JSON.stringify(experimentData)
+                    body: csv
                 });
 
                 if (!response.ok) {
